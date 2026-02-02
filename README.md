@@ -26,8 +26,12 @@ Current phase: Planning & Design (select core utilities implemented)
 - Append-only trace format + hashing utilities: `src/trace.py`.
 - Deterministic routing policies: `src/routing.py`.
 - Core steps (Normalize, Decompose, Verify): `src/steps.py`.
+- Invariant validation utilities: `src/invariants.py`.
+- Fixed-order execution graph: `src/execution.py`.
 - Example trace generator: `examples/trace_demo.py`.
-- Tests: `tests/test_trace.py`, `tests/test_routing.py`, `tests/test_steps.py`.
+- Tests: `tests/test_trace.py`, `tests/test_routing.py`, `tests/test_steps.py`,
+  `tests/test_execution.py`, `tests/test_golden_trace.py`,
+  `tests/test_invariants.py`.
 
 ## Setup
 
@@ -44,3 +48,6 @@ python examples/trace_demo.py
 ```bash
 python -m pytest
 ```
+
+Golden determinism tests compare generated traces against
+`tests/golden/trace_demo.ndjson`.

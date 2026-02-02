@@ -6,6 +6,7 @@ import copy
 import re
 from typing import Any, Dict, List, Mapping, Tuple
 
+from src.invariants import validate_state, validate_step_result
 from src.trace import hash_json
 
 
@@ -67,6 +68,7 @@ def _advance_state(state: State, *, now: str, artifact_key: str, artifact_value:
 
 def normalize(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
     """Normalize the input prompt (trim + collapse whitespace)."""
+    validate_state(state)
     started_at = _now_required(now)
     finished_at = started_at
     problem = dict(state.get("problem") or {})
@@ -82,7 +84,10 @@ def normalize(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Resu
             output_payload={},
             errors=[{"code": "invalid_prompt", "message": "prompt is required"}],
         )
-        return _copy_state(state), result
+        validate_step_result(result)
+        next_state = _copy_state(state)
+        validate_state(next_state)
+        return next_state, result
 
     normalized_prompt = _WHITESPACE_RE.sub(" ", prompt).strip()
     output = {"normalized_prompt": normalized_prompt}
@@ -96,11 +101,14 @@ def normalize(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Resu
         input_payload={"prompt": prompt},
         output_payload=output,
     )
+    validate_step_result(result)
+    validate_state(next_state)
     return next_state, result
 
 
 def decompose(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
     """Derive a deterministic list of tasks from goals or normalized prompt."""
+    validate_state(state)
     started_at = _now_required(now)
     finished_at = started_at
     problem = dict(state.get("problem") or {})
@@ -126,11 +134,14 @@ def decompose(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Resu
         input_payload={"goals": goals, "prompt": base_prompt},
         output_payload=output,
     )
+    validate_step_result(result)
+    validate_state(next_state)
     return next_state, result
 
 
 def verify(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
     """Perform deterministic verification checks (placeholder)."""
+    validate_state(state)
     started_at = _now_required(now)
     finished_at = started_at
     artifacts = state.get("artifacts") or {}
@@ -152,4 +163,6 @@ def verify(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]
         input_payload={"tasks": tasks},
         output_payload=output,
     )
+    validate_step_result(result)
+    validate_state(next_state)
     return next_state, result
