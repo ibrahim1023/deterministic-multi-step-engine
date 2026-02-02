@@ -1,2 +1,5 @@
 AGENTS.md
 skills
+src/__pycache__/
+tests/__pycache__/
+trace_demo.ndjson
