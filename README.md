@@ -19,7 +19,3 @@ designed to be embedded in other systems.
 ## Status
 
 Current phase: Planning & Design
-
-## Next
-
-Start with Phase 1 tasks in `tasks.md`, in order.
