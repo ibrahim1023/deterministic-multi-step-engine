@@ -1,4 +1,6 @@
-from src.persistence import extract_trace_metadata, prepare_trace_records
+import pytest
+
+from src.persistence import extract_request_id, extract_trace_metadata, prepare_trace_records
 
 
 def test_extract_trace_metadata() -> None:
@@ -39,3 +41,12 @@ def test_prepare_trace_records_requires_hash() -> None:
     prepared = prepare_trace_records(trace)
     assert prepared[0]["record_hash"] == "hash-0"
     assert prepared[0]["index"] == 0
+
+
+def test_extract_request_id() -> None:
+    assert extract_request_id({"id": "req-1"}) == "req-1"
+
+
+def test_extract_request_id_requires_value() -> None:
+    with pytest.raises(ValueError):
+        extract_request_id({"id": ""})

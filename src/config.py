@@ -23,3 +23,20 @@ def load_env(path: str = ".env") -> None:
 
 def get_database_url() -> str | None:
     return os.environ.get("DATABASE_URL")
+
+
+def get_redis_url() -> str | None:
+    return os.environ.get("REDIS_URL")
+
+
+def get_idempotency_ttl_seconds() -> int | None:
+    raw = os.environ.get("IDEMPOTENCY_TTL_SECONDS")
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError("IDEMPOTENCY_TTL_SECONDS must be an integer") from exc
+    if value <= 0:
+        raise ValueError("IDEMPOTENCY_TTL_SECONDS must be > 0") from None
+    return value

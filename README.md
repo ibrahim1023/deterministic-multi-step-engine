@@ -81,3 +81,15 @@ python -c 'from src.persistence import PostgresTraceStore; PostgresTraceStore(\"
 ```
 
 If `DATABASE_URL` is set, the API automatically stores every trace.
+
+Replay by request ID:
+
+```bash
+curl http://127.0.0.1:8000/v1/replay/req-1
+```
+
+## Caching / Idempotency
+
+If `REDIS_URL` is set, the API will cache responses by trace ID (or problem
+spec ID) and return cached responses on repeated requests. Optional
+`IDEMPOTENCY_TTL_SECONDS` controls expiry.
