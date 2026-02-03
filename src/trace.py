@@ -91,6 +91,40 @@ def create_trace_step(
     return record
 
 
+def create_trace_control(
+    *,
+    index: int,
+    control_type: str,
+    action: str,
+    loop_iteration: int,
+    start_step: str,
+    end_step: str,
+    stop_path: str,
+    stop_operator: str,
+    stop_value: Any,
+    state: Dict[str, Any],
+    prev_hash: str,
+) -> Dict[str, Any]:
+    record: Dict[str, Any] = {
+        "type": "control",
+        "index": index,
+        "control_type": control_type,
+        "action": action,
+        "loop_iteration": loop_iteration,
+        "start_step": start_step,
+        "end_step": end_step,
+        "stop_condition": {
+            "path": stop_path,
+            "operator": stop_operator,
+            "value": stop_value,
+        },
+        "state_hash": hash_json(state),
+        "prev_hash": prev_hash,
+    }
+    record["record_hash"] = compute_record_hash(record)
+    return record
+
+
 def append_record(path: str, record: Dict[str, Any]) -> None:
     """Append a record as a single JSON line. Caller ensures append-only usage."""
     line = canonical_json(record)

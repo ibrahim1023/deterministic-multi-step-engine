@@ -38,6 +38,23 @@ TraceStep
 - prev_hash: string (required, prior record_hash)
 - record_hash: string (required, hash of this record)
 
+TraceControl
+
+- type: string (required, literal "control")
+- index: integer (required, > 0 and monotonic)
+- control_type: string (required, literal "loop")
+- action: string (required, enum: repeat | stop | max_iterations_reached)
+- loop_iteration: integer (required, >= 1)
+- start_step: string (required)
+- end_step: string (required)
+- stop_condition: object (required)
+  - path: string (required)
+  - operator: string (required)
+  - value: string | integer | boolean (required)
+- state_hash: string (required, hash of state at decision time)
+- prev_hash: string (required, prior record_hash)
+- record_hash: string (required, hash of this record)
+
 Canonical JSON (json-c14n-v1)
 
 - Encode as UTF-8.

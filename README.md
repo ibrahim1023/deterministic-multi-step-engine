@@ -29,6 +29,7 @@ Current phase: Planning & Design (select core utilities implemented)
 - Invariant validation utilities: `src/invariants.py`.
 - Fixed-order execution graph: `src/execution.py`.
 - Deterministic execution runner: `src/engine.py`.
+- Loop configuration + stop-condition evaluation: `src/looping.py`.
 - FastAPI API layer: `src/api.py`.
 - PostgreSQL persistence utilities: `src/persistence.py`.
 - Extended step set (AcquireEvidence, Compute, Synthesize, Audit): `src/steps.py`.
@@ -72,6 +73,53 @@ Example request:
 curl -X POST http://127.0.0.1:8000/v1/execute \\
   -H 'Content-Type: application/json' \\
   -d '{\"problem_spec\":{\"version\":\"1.0.0\",\"id\":\"req-1\",\"created_at\":\"2026-02-02T00:00:00Z\",\"inputs\":{\"prompt\":\"Hello world\"}},\"trace_id\":\"trace-1\",\"now\":\"2026-02-02T00:00:00Z\"}'
+```
+
+## Conditional Loops
+
+The engine can repeat a deterministic segment until a stop condition is met or
+`max_iterations` is reached. Configure this in `problem_spec.settings.loop`.
+
+Example:
+
+```json
+{
+  "settings": {
+    "loop": {
+      "enabled": true,
+      "start_step": "AcquireEvidence",
+      "end_step": "Verify",
+      "max_iterations": 3,
+      "stop_condition": {
+        "path": "artifacts.verification.status",
+        "operator": "equals",
+        "value": "passed"
+      }
+    }
+  }
+}
+```
+
+Loop decisions are recorded as `control` trace records with action values
+`repeat`, `stop`, or `max_iterations_reached`.
+
+## Multi-Path Verification
+
+Define multiple verification paths to compute parallel checks with an aggregate
+result. Each path can override `evidence_required` and the engine returns per-
+path status plus an aggregate status in `artifacts.verification`.
+
+Example:
+
+```json
+{
+  "settings": {
+    "verification_paths": [
+      {"name": "primary", "evidence_required": true},
+      {"name": "secondary", "evidence_required": false}
+    ]
+  }
+}
 ```
 
 ## Persistence

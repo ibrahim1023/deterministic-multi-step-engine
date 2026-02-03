@@ -4,6 +4,7 @@ from src.trace import (
     canonical_json,
     compute_record_hash,
     create_trace_header,
+    create_trace_control,
     create_trace_step,
     hash_json,
 )
@@ -62,6 +63,24 @@ def test_trace_step_hash_chain() -> None:
         prev_hash="prev",
     )
     assert step["record_hash"] == compute_record_hash(step)
+
+
+def test_trace_control_hash_chain() -> None:
+    state = {"version": "1.0.0", "step_index": 3, "status": "running"}
+    control = create_trace_control(
+        index=2,
+        control_type="loop",
+        action="repeat",
+        loop_iteration=1,
+        start_step="AcquireEvidence",
+        end_step="Verify",
+        stop_path="artifacts.verification.status",
+        stop_operator="equals",
+        stop_value="passed",
+        state=state,
+        prev_hash="prev",
+    )
+    assert control["record_hash"] == compute_record_hash(control)
 
 
 def test_canonical_json_rejects_nan() -> None:

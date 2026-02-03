@@ -209,16 +209,51 @@ def verify(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]
     evidence_count = evidence.get(
         "evidence_count") if isinstance(evidence, dict) else 0
     settings = dict((state.get("problem") or {}).get("settings") or {})
-    evidence_required = bool(settings.get("evidence_required", False))
-    checks = {
+    evidence_required_default = bool(settings.get("evidence_required", False))
+    base_checks = {
         "tasks_present": bool(tasks),
         "task_count": len(tasks) if isinstance(tasks, list) else 0,
-        "evidence_required": evidence_required,
         "evidence_present": bool(evidence_count),
     }
-    passed = checks["tasks_present"] and (
-        not evidence_required or checks["evidence_present"])
-    output = {"checks": checks, "status": "passed" if passed else "failed"}
+    verification_paths = settings.get("verification_paths")
+    if isinstance(verification_paths, list) and verification_paths:
+        paths_output = []
+        for entry in verification_paths:
+            if not isinstance(entry, dict):
+                continue
+            name = entry.get("name")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            evidence_required = entry.get("evidence_required")
+            if evidence_required is None:
+                evidence_required = evidence_required_default
+            checks = dict(base_checks)
+            checks["evidence_required"] = bool(evidence_required)
+            passed = checks["tasks_present"] and (
+                not checks["evidence_required"] or checks["evidence_present"])
+            paths_output.append(
+                {"name": name, "checks": checks, "status": "passed" if passed else "failed"}
+            )
+        aggregate_passed = all(
+            path.get("status") == "passed" for path in paths_output
+        )
+        output = {
+            "paths": paths_output,
+            "aggregate": {
+                "status": "passed" if aggregate_passed else "failed",
+                "total": len(paths_output),
+                "failed_count": sum(
+                    1 for path in paths_output if path.get("status") != "passed"
+                ),
+            },
+            "status": "passed" if aggregate_passed else "failed",
+        }
+    else:
+        checks = dict(base_checks)
+        checks["evidence_required"] = evidence_required_default
+        passed = checks["tasks_present"] and (
+            not checks["evidence_required"] or checks["evidence_present"])
+        output = {"checks": checks, "status": "passed" if passed else "failed"}
     next_state = _advance_state(
         state=state, now=finished_at, artifact_key="verification", artifact_value=output)
     result = _step_result(

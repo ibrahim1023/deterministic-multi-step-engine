@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any, Mapping
 
+from src.looping import parse_loop_config
+
 
 _SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 _ISO_UTC_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
@@ -78,6 +80,20 @@ def validate_problem_spec(problem_spec: Mapping[str, Any]) -> None:
         model_profile = settings.get("model_profile")
         if model_profile is not None and (not isinstance(model_profile, str) or not model_profile.strip()):
             raise ValueError("problem_spec.settings.model_profile must be a non-empty string")
+        verification_paths = settings.get("verification_paths")
+        if verification_paths is not None:
+            if not isinstance(verification_paths, list):
+                raise ValueError("problem_spec.settings.verification_paths must be a list")
+            for entry in verification_paths:
+                if not isinstance(entry, Mapping):
+                    raise ValueError("problem_spec.settings.verification_paths items must be objects")
+                name = entry.get("name")
+                if not isinstance(name, str) or not name.strip():
+                    raise ValueError("problem_spec.settings.verification_paths.name must be a non-empty string")
+                evidence_required = entry.get("evidence_required")
+                if evidence_required is not None and not isinstance(evidence_required, bool):
+                    raise ValueError("problem_spec.settings.verification_paths.evidence_required must be a boolean")
+        parse_loop_config(problem_spec)
 
     provenance = problem_spec.get("provenance")
     if provenance is not None and not isinstance(provenance, Mapping):

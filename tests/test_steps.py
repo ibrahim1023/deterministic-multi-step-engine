@@ -58,6 +58,7 @@ def test_decompose_falls_back_to_prompt() -> None:
 
 def test_verify_tasks_present() -> None:
     state = {
+        "problem": {"inputs": {"prompt": "Verify A"}},
         "artifacts": {"decomposition": {"tasks": ["A"]}},
         "step_index": 1,
         "status": "running",
@@ -65,6 +66,38 @@ def test_verify_tasks_present() -> None:
     next_state, result = verify(state, now="2026-02-02T00:00:03Z")
     assert result["output"]["checks"]["tasks_present"] is True
     assert next_state["artifacts"]["verification"]["status"] == "passed"
+
+
+def test_verify_multi_path_aggregate() -> None:
+    state = {
+        "problem": {
+            "inputs": {"prompt": "Verify B"},
+            "settings": {
+                "evidence_required": True,
+                "verification_paths": [
+                    {"name": "primary", "evidence_required": True},
+                    {"name": "secondary", "evidence_required": False},
+                ],
+            },
+        },
+        "artifacts": {
+            "decomposition": {"tasks": ["A"]},
+            "evidence": {"evidence_count": 0},
+        },
+        "step_index": 1,
+        "status": "running",
+    }
+    next_state, result = verify(state, now="2026-02-02T00:00:03Z")
+    output = result["output"]
+    assert output["status"] == "failed"
+    assert output["aggregate"]["status"] == "failed"
+    assert output["aggregate"]["total"] == 2
+    assert output["aggregate"]["failed_count"] == 1
+    assert output["paths"][0]["name"] == "primary"
+    assert output["paths"][0]["status"] == "failed"
+    assert output["paths"][1]["name"] == "secondary"
+    assert output["paths"][1]["status"] == "passed"
+    assert next_state["artifacts"]["verification"]["status"] == "failed"
 
 
 def test_acquire_evidence_reads_context() -> None:
