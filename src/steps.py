@@ -1,4 +1,4 @@
-"""Core deterministic steps: Normalize, Decompose, Verify."""
+"""Core deterministic steps."""
 
 from __future__ import annotations
 
@@ -139,6 +139,64 @@ def decompose(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Resu
     return next_state, result
 
 
+def acquire_evidence(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
+    """Collect deterministic evidence from inputs/context (placeholder)."""
+    validate_state(state)
+    started_at = _now_required(now)
+    finished_at = started_at
+    problem = dict(state.get("problem") or {})
+    inputs = dict(problem.get("inputs") or {})
+    settings = dict(problem.get("settings") or {}) if isinstance(
+        problem.get("settings"), dict) else {}
+    context = inputs.get("context") if isinstance(
+        inputs.get("context"), dict) else {}
+    evidence = context.get("evidence")
+    evidence_list = evidence if isinstance(evidence, list) else []
+    output = {
+        "evidence": evidence_list,
+        "evidence_required": bool(settings.get("evidence_required", False)),
+        "evidence_count": len(evidence_list),
+    }
+    next_state = _advance_state(
+        state=state, now=finished_at, artifact_key="evidence", artifact_value=output)
+    result = _step_result(
+        step="AcquireEvidence",
+        status="success",
+        started_at=started_at,
+        finished_at=finished_at,
+        input_payload={"evidence": evidence_list},
+        output_payload=output,
+    )
+    validate_step_result(result)
+    validate_state(next_state)
+    return next_state, result
+
+
+def compute(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
+    """Deterministic computation placeholder derived from tasks."""
+    validate_state(state)
+    started_at = _now_required(now)
+    finished_at = started_at
+    artifacts = state.get("artifacts") or {}
+    decomposition = artifacts.get("decomposition") or {}
+    tasks = decomposition.get("tasks") or []
+    task_count = len(tasks) if isinstance(tasks, list) else 0
+    output = {"task_count": task_count, "status": "ok"}
+    next_state = _advance_state(
+        state=state, now=finished_at, artifact_key="computation", artifact_value=output)
+    result = _step_result(
+        step="Compute",
+        status="success",
+        started_at=started_at,
+        finished_at=finished_at,
+        input_payload={"tasks": tasks},
+        output_payload=output,
+    )
+    validate_step_result(result)
+    validate_state(next_state)
+    return next_state, result
+
+
 def verify(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
     """Perform deterministic verification checks (placeholder)."""
     validate_state(state)
@@ -147,12 +205,20 @@ def verify(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]
     artifacts = state.get("artifacts") or {}
     decomposition = artifacts.get("decomposition") or {}
     tasks = decomposition.get("tasks") or []
+    evidence = artifacts.get("evidence") or {}
+    evidence_count = evidence.get(
+        "evidence_count") if isinstance(evidence, dict) else 0
+    settings = dict((state.get("problem") or {}).get("settings") or {})
+    evidence_required = bool(settings.get("evidence_required", False))
     checks = {
         "tasks_present": bool(tasks),
         "task_count": len(tasks) if isinstance(tasks, list) else 0,
+        "evidence_required": evidence_required,
+        "evidence_present": bool(evidence_count),
     }
-    output = {"checks": checks,
-              "status": "passed" if checks["tasks_present"] else "failed"}
+    passed = checks["tasks_present"] and (
+        not evidence_required or checks["evidence_present"])
+    output = {"checks": checks, "status": "passed" if passed else "failed"}
     next_state = _advance_state(
         state=state, now=finished_at, artifact_key="verification", artifact_value=output)
     result = _step_result(
@@ -161,6 +227,51 @@ def verify(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]
         started_at=started_at,
         finished_at=finished_at,
         input_payload={"tasks": tasks},
+        output_payload=output,
+    )
+    validate_step_result(result)
+    validate_state(next_state)
+    return next_state, result
+
+
+def synthesize(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
+    """Deterministic synthesis placeholder derived from computation."""
+    validate_state(state)
+    started_at = _now_required(now)
+    finished_at = started_at
+    computation = (state.get("artifacts") or {}).get("computation") or {}
+    task_count = computation.get("task_count", 0)
+    output = {"summary": f"Processed {task_count} task(s)."}
+    next_state = _advance_state(
+        state=state, now=finished_at, artifact_key="synthesis", artifact_value=output)
+    result = _step_result(
+        step="Synthesize",
+        status="success",
+        started_at=started_at,
+        finished_at=finished_at,
+        input_payload={"task_count": task_count},
+        output_payload=output,
+    )
+    validate_step_result(result)
+    validate_state(next_state)
+    return next_state, result
+
+
+def audit(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
+    """Deterministic audit placeholder of final artifacts."""
+    validate_state(state)
+    started_at = _now_required(now)
+    finished_at = started_at
+    artifacts = state.get("artifacts") or {}
+    output = {"artifact_keys": sorted(artifacts.keys()), "status": "ok"}
+    next_state = _advance_state(
+        state=state, now=finished_at, artifact_key="audit", artifact_value=output)
+    result = _step_result(
+        step="Audit",
+        status="success",
+        started_at=started_at,
+        finished_at=finished_at,
+        input_payload={"artifact_keys": output["artifact_keys"]},
         output_payload=output,
     )
     validate_step_result(result)

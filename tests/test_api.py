@@ -24,9 +24,9 @@ def test_execute_returns_trace_and_state() -> None:
     assert data["trace_id"] == "trace-1"
     assert data["engine_version"] == "0.1.0"
     assert data["trace"][0]["type"] == "header"
-    assert len(data["trace"]) == 4
+    assert len(data["trace"]) == 8
     assert data["final_state"]["status"] == "completed"
-    assert data["final_state"]["step_index"] == 3
+    assert data["final_state"]["step_index"] == 7
 
 
 def test_execute_is_deterministic() -> None:

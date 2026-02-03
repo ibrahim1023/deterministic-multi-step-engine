@@ -9,7 +9,15 @@ from typing import Any, Dict, Iterable, List, Mapping, Tuple
 from src.execution import build_linear_graph, validate_unique_steps
 from src.invariants import validate_state
 from src.routing import ensure_steps_known, resolve_steps
-from src.steps import decompose, normalize, verify
+from src.steps import (
+    acquire_evidence,
+    audit,
+    compute,
+    decompose,
+    normalize,
+    synthesize,
+    verify,
+)
 from src.trace import create_trace_header, create_trace_step
 from src.validation import validate_iso8601_utc, validate_problem_spec, validate_semver
 
@@ -26,7 +34,11 @@ Record = Dict[str, Any]
 _STEP_HANDLERS = {
     "Normalize": normalize,
     "Decompose": decompose,
+    "AcquireEvidence": acquire_evidence,
+    "Compute": compute,
     "Verify": verify,
+    "Synthesize": synthesize,
+    "Audit": audit,
 }
 
 
@@ -75,7 +87,8 @@ def _resolve_steps(problem_spec: Mapping[str, Any]) -> List[str]:
 
 def _initial_state(problem_spec: Mapping[str, Any], *, trace_id: str, now: str) -> State:
     inputs = problem_spec.get("inputs") or {}
-    settings = problem_spec.get("settings") if isinstance(problem_spec.get("settings"), dict) else {}
+    settings = problem_spec.get("settings") if isinstance(
+        problem_spec.get("settings"), dict) else {}
     state: State = {
         "version": STATE_VERSION,
         "problem": _copy_state(problem_spec),
@@ -114,12 +127,15 @@ def execute_problem(
     trace_id_value = trace_id or str(problem_spec.get("id"))
 
     steps = _resolve_steps(problem_spec)
-    settings = problem_spec.get("settings") if isinstance(problem_spec.get("settings"), dict) else {}
+    settings = problem_spec.get("settings") if isinstance(
+        problem_spec.get("settings"), dict) else {}
     max_steps = settings.get("max_steps")
     if max_steps is not None and max_steps < len(steps):
-        raise ValueError("settings.max_steps is lower than resolved step count")
+        raise ValueError(
+            "settings.max_steps is lower than resolved step count")
 
-    state = _initial_state(problem_spec, trace_id=trace_id_value, now=now_value)
+    state = _initial_state(
+        problem_spec, trace_id=trace_id_value, now=now_value)
     trace: List[Record] = []
 
     header = create_trace_header(
@@ -142,7 +158,8 @@ def execute_problem(
         state_after, result = step_fn(state_before, now=now_value)
         if result.get("status") == "failed":
             failed = True
-            state_after = _ensure_failed_state(state_after, result, now=now_value)
+            state_after = _ensure_failed_state(
+                state_after, result, now=now_value)
 
         record = create_trace_step(
             index=index,

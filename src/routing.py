@@ -39,7 +39,15 @@ class PolicyRegistry:
 
 DEFAULT_POLICY = RoutingPolicy(
     name="default",
-    steps=["Normalize", "Decompose", "Verify"],
+    steps=[
+        "Normalize",
+        "Decompose",
+        "AcquireEvidence",
+        "Compute",
+        "Verify",
+        "Synthesize",
+        "Audit",
+    ],
 )
 
 

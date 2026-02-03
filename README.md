@@ -31,6 +31,7 @@ Current phase: Planning & Design (select core utilities implemented)
 - Deterministic execution runner: `src/engine.py`.
 - FastAPI API layer: `src/api.py`.
 - PostgreSQL persistence utilities: `src/persistence.py`.
+- Extended step set (AcquireEvidence, Compute, Synthesize, Audit): `src/steps.py`.
 - Example trace generator: `examples/trace_demo.py`.
 - Tests: `tests/test_trace.py`, `tests/test_routing.py`, `tests/test_steps.py`,
   `tests/test_execution.py`, `tests/test_golden_trace.py`,
@@ -56,6 +57,8 @@ python -m pytest
 
 Golden determinism tests compare generated traces against
 `tests/golden/trace_demo.ndjson`.
+
+Integration tests that hit Postgres require `DATABASE_URL` to be set.
 
 ## Run API
 
