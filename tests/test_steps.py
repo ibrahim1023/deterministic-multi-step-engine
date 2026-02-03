@@ -138,7 +138,33 @@ def test_audit_records_artifact_keys() -> None:
         "artifacts": {"normalized": {}, "decomposition": {}},
         "step_index": 5,
         "status": "running",
+        "problem": {"inputs": {"prompt": "Audit me"}},
+        "metadata": {"created_at": "2026-02-02T00:00:00Z", "updated_at": "2026-02-02T00:00:07Z"},
     }
     next_state, result = audit(state, now="2026-02-02T00:00:07Z")
     assert result["output"]["artifact_keys"] == ["decomposition", "normalized"]
     assert next_state["artifacts"]["audit"]["status"] == "ok"
+
+
+def test_audit_report_structure() -> None:
+    state = {
+        "artifacts": {
+            "verification": {
+                "status": "passed",
+                "paths": [{"name": "primary", "status": "passed"}],
+            }
+        },
+        "step_index": 6,
+        "status": "running",
+        "problem": {"inputs": {"prompt": "Audit report", "constraints": ["c1"]}},
+        "metadata": {"created_at": "2026-02-02T00:00:00Z", "updated_at": "2026-02-02T00:00:07Z"},
+    }
+    next_state, result = audit(state, now="2026-02-02T00:00:08Z")
+    report = result["output"]["report"]
+    assert report["inputs"]["prompt_length"] == len("Audit report")
+    assert report["inputs"]["has_constraints"] is True
+    assert report["inputs"]["constraint_count"] == 1
+    assert report["steps"]["step_index"] == 6
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["paths"][0]["name"] == "primary"
+    assert next_state["artifacts"]["audit"]["report"] == report

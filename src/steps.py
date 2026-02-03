@@ -298,7 +298,40 @@ def audit(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Result]:
     started_at = _now_required(now)
     finished_at = started_at
     artifacts = state.get("artifacts") or {}
-    output = {"artifact_keys": sorted(artifacts.keys()), "status": "ok"}
+    artifact_keys = sorted(artifacts.keys())
+    problem = dict(state.get("problem") or {})
+    inputs = dict(problem.get("inputs") or {})
+    constraints = inputs.get("constraints") if isinstance(
+        inputs.get("constraints"), list) else []
+    verification = artifacts.get("verification") or {}
+    verification_status = verification.get("status", "unknown")
+    verification_paths = verification.get("paths")
+    report = {
+        "inputs": {
+            "prompt_length": len(str(inputs.get("prompt") or "")),
+            "has_constraints": bool(constraints),
+            "constraint_count": len(constraints),
+        },
+        "steps": {
+            "step_index": int(state.get("step_index", 0)),
+            "artifact_keys": artifact_keys,
+            "artifact_count": len(artifact_keys),
+        },
+        "verification": {
+            "status": verification_status,
+            "paths": [
+                {"name": path.get("name"), "status": path.get("status")}
+                for path in verification_paths
+                if isinstance(path, dict)
+            ] if isinstance(verification_paths, list) else [],
+        },
+        "timestamps": {
+            "created_at": (state.get("metadata") or {}).get("created_at"),
+            "updated_at": (state.get("metadata") or {}).get("updated_at"),
+        },
+        "notes": [],
+    }
+    output = {"artifact_keys": artifact_keys, "status": "ok", "report": report}
     next_state = _advance_state(
         state=state, now=finished_at, artifact_key="audit", artifact_value=output)
     result = _step_result(

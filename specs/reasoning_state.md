@@ -20,6 +20,24 @@ ReasoningState
   - verification: object (optional)
   - synthesis: object (optional)
   - audit: object (optional)
+    - report: object (optional)
+      - inputs: object (required)
+        - prompt_length: integer
+        - has_constraints: boolean
+        - constraint_count: integer
+      - steps: object (required)
+        - step_index: integer
+        - artifact_keys: list[string]
+        - artifact_count: integer
+      - verification: object (required)
+        - status: string
+        - paths: list[object] (optional)
+          - name: string
+          - status: string
+      - timestamps: object (required)
+        - created_at: string
+        - updated_at: string
+      - notes: list[string] (optional)
 - assumptions: list[string] (optional, defaults to empty)
 - constraints: list[string] (optional, defaults to empty)
 - errors: list[object] (optional, defaults to empty)

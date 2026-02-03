@@ -122,6 +122,16 @@ Example:
 }
 ```
 
+## Audit Reports
+
+The `Audit` step produces a structured report under `artifacts.audit.report`
+with input summary, step/artefact counts, verification status, and timestamps.
+
+## Metrics
+
+Use `src.metrics.aggregate_trace_metrics` to compute basic evaluation metrics
+from a trace, including per-step counts, control action counts, and durations.
+
 ## Persistence
 
 The PostgreSQL persistence module stores trace headers and records. Initialize
