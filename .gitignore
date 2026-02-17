@@ -5,6 +5,7 @@ src/__pycache__/
 tests/__pycache__/
 
 trace_demo.ndjson
+!tests/golden/trace_demo.ndjson
 
 .env
 tests/.DS_Store
