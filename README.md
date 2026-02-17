@@ -33,6 +33,11 @@ Current phase: Planning & Design (select core utilities implemented)
 - FastAPI API layer: `src/api.py`.
 - PostgreSQL persistence utilities: `src/persistence.py`.
 - Extended step set (AcquireEvidence, Compute, Synthesize, Audit): `src/steps.py`.
+- Pydantic contract schemas/versioning: `src/schemas.py`.
+- Orchestration planning + LangGraph compilation: `src/orchestration.py`.
+- Model abstraction over LiteLLM: `src/model_provider.py`.
+- Structured generation + schema enforcement: `src/structured_generation.py`.
+- CI determinism diff helpers: `src/determinism_ci.py`.
 - Example trace generator: `examples/trace_demo.py`.
 - Tests: `tests/test_trace.py`, `tests/test_routing.py`, `tests/test_steps.py`,
   `tests/test_execution.py`, `tests/test_golden_trace.py`,
@@ -43,6 +48,8 @@ Current phase: Planning & Design (select core utilities implemented)
 - Python 3.12+ recommended.
 - Install dependencies: `pip install -r requirements.txt`.
 - Copy `.env.example` to `.env` and set `DATABASE_URL` for persistence.
+- For structured generation through LiteLLM, set `MODEL_PROVIDER` and
+  `MODEL_NAME` (optional).
 
 ## Run Demo
 
@@ -60,6 +67,12 @@ Golden determinism tests compare generated traces against
 `tests/golden/trace_demo.ndjson`.
 
 Integration tests that hit Postgres require `DATABASE_URL` to be set.
+
+Run only determinism-focused checks:
+
+```bash
+python -m pytest tests/test_trace.py tests/test_golden_trace.py
+```
 
 ## Run API
 
@@ -154,3 +167,80 @@ curl http://127.0.0.1:8000/v1/replay/req-1
 If `REDIS_URL` is set, the API will cache responses by trace ID (or problem
 spec ID) and return cached responses on repeated requests. Optional
 `IDEMPOTENCY_TTL_SECONDS` controls expiry.
+
+## Orchestration
+
+Set `problem_spec.settings.orchestration_framework` to:
+
+- `native` (default): deterministic engine execution path
+- `langgraph`: validates and compiles a LangGraph execution graph before
+  running deterministic steps
+
+Example:
+
+```json
+{
+  "settings": {
+    "orchestration_framework": "langgraph"
+  }
+}
+```
+
+## Structured Generation
+
+Synthesis supports schema-conformant generation when enabled:
+
+```json
+{
+  "settings": {
+    "structured_generation": true,
+    "model_provider": "litellm",
+    "model_name": "openai/gpt-4o-mini"
+  }
+}
+```
+
+If model output is not valid JSON or does not satisfy the target schema, the
+step fails deterministically with `structured_generation_failed`.
+
+## Determinism Regression Workflow
+
+Use this flow to verify byte-for-byte replay behavior outside the test runner.
+
+1. Generate a deterministic demo trace:
+
+```bash
+python examples/trace_demo.py
+```
+
+2. Compare against the golden fixture:
+
+```bash
+diff -u tests/golden/trace_demo.ndjson trace_demo.ndjson
+```
+
+Expected result: no diff output.
+
+3. Run the golden replay test in CI/local:
+
+```bash
+python -m pytest tests/test_golden_trace.py
+```
+
+This enforces the contract that identical inputs produce identical NDJSON trace
+bytes.
+
+CI performs the same check with:
+
+```bash
+python scripts/check_trace_determinism.py
+```
+
+## Demo Checklist
+
+- Install dependencies (`pip install -r requirements.txt`).
+- Generate a demo trace (`python examples/trace_demo.py`).
+- Start API (`uvicorn src.api:app --reload`).
+- Execute `/v1/execute` sample request.
+- Replay trace by ID (`GET /v1/replay/{request_id}`).
+- Run determinism tests (`python -m pytest tests/test_golden_trace.py`).

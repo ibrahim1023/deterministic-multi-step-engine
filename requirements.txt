@@ -1,4 +1,8 @@
 fastapi>=0.110.0
 uvicorn>=0.27.0
+pydantic>=2.6.0
 psycopg[binary]>=3.1.18
 redis>=5.0.4
+langgraph>=0.2.0
+litellm>=1.40.0
+instructor>=1.6.0

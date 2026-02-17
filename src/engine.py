@@ -9,7 +9,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Tuple
 from src.execution import build_linear_graph, validate_unique_steps
 from src.invariants import validate_state
 from src.looping import parse_loop_config, resolve_loop_bounds, stop_condition_met
-from src.routing import ensure_steps_known, resolve_steps
+from src.orchestration import build_orchestration_plan, compile_langgraph_plan
+from src.routing import ensure_steps_known
 from src.steps import (
     acquire_evidence,
     audit,
@@ -79,11 +80,14 @@ def _ensure_completed_state(state: State, *, now: str) -> State:
 
 
 def _resolve_steps(problem_spec: Mapping[str, Any]) -> List[str]:
-    steps = resolve_steps(problem_spec)
+    plan = build_orchestration_plan(problem_spec)
+    steps = list(plan.steps)
     ensure_steps_known(steps, _STEP_HANDLERS.keys())
     validate_unique_steps(steps)
     build_linear_graph(steps)
-    return list(steps)
+    if plan.framework == "langgraph":
+        compile_langgraph_plan(steps)
+    return steps
 
 
 def _initial_state(problem_spec: Mapping[str, Any], *, trace_id: str, now: str) -> State:

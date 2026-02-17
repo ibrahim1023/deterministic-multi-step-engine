@@ -133,6 +133,35 @@ def test_synthesize_uses_computation() -> None:
     assert "summary" in next_state["artifacts"]["synthesis"]
 
 
+def test_synthesize_structured_generation_fails_without_litellm(monkeypatch) -> None:  # noqa: ANN001
+    class _FakeProvider:
+        def __init__(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+            pass
+
+        def complete(self, **kwargs):  # noqa: ANN003
+            raise RuntimeError("litellm is required for LiteLLMProvider")
+
+    monkeypatch.setattr("src.steps.LiteLLMProvider", _FakeProvider)
+
+    state = {
+        "problem": {
+            "inputs": {"prompt": "Synthesize"},
+            "settings": {
+                "structured_generation": True,
+                "model_provider": "litellm",
+                "model_name": "gpt-test",
+            },
+        },
+        "artifacts": {"computation": {"task_count": 2}},
+        "step_index": 4,
+        "status": "running",
+    }
+    next_state, result = synthesize(state, now="2026-02-02T00:00:06Z")
+    assert result["status"] == "failed"
+    assert result["errors"][0]["code"] == "structured_generation_failed"
+    assert next_state["step_index"] == 4
+
+
 def test_audit_records_artifact_keys() -> None:
     state = {
         "artifacts": {"normalized": {}, "decomposition": {}},

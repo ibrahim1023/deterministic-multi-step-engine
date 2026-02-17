@@ -13,6 +13,8 @@ from src.cache import RedisCache
 from src.config import (
     get_database_url,
     get_idempotency_ttl_seconds,
+    get_model_name,
+    get_model_provider,
     get_redis_url,
     load_env,
 )
@@ -80,6 +82,11 @@ async def health() -> Dict[str, str]:
 @app.post("/v1/execute", response_model=ExecuteResponse)
 async def execute(request: ExecuteRequest) -> ExecuteResponse:
     try:
+        settings = request.problem_spec.get("settings")
+        if isinstance(settings, dict) and settings.get("structured_generation"):
+            settings.setdefault("model_provider", get_model_provider() or "litellm")
+            if get_model_name():
+                settings.setdefault("model_name", get_model_name())
         trace_key = request.trace_id or str(request.problem_spec.get("id"))
         if _CACHE is not None and trace_key:
             cached = _CACHE.get_json(f"trace:{trace_key}")

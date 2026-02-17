@@ -7,6 +7,9 @@ import re
 from typing import Any, Dict, List, Mapping, Tuple
 
 from src.invariants import validate_state, validate_step_result
+from src.model_provider import LiteLLMProvider
+from src.schemas import SynthesisOutputModel
+from src.structured_generation import StructuredGenerationError, StructuredGenerator, enforce_schema
 from src.trace import hash_json
 
 
@@ -276,16 +279,55 @@ def synthesize(state: Mapping[str, Any], *, now: str | None) -> Tuple[State, Res
     finished_at = started_at
     computation = (state.get("artifacts") or {}).get("computation") or {}
     task_count = computation.get("task_count", 0)
-    output = {"summary": f"Processed {task_count} task(s)."}
+    output_payload: Dict[str, Any] = {"summary": f"Processed {task_count} task(s)."}
+    settings = dict((state.get("problem") or {}).get("settings") or {})
+    use_structured_generation = bool(settings.get("structured_generation"))
+    if use_structured_generation:
+        model_provider = settings.get("model_provider")
+        model_name = settings.get("model_name")
+        if model_provider == "litellm" and isinstance(model_name, str) and model_name.strip():
+            prompt = (
+                "Return a JSON object with key 'summary' that describes the "
+                f"deterministic synthesis result for task_count={task_count}."
+            )
+            try:
+                generator = StructuredGenerator(LiteLLMProvider())
+                output_payload = generator.generate(
+                    model_name=model_name,
+                    prompt=prompt,
+                    response_model=SynthesisOutputModel,
+                )
+            except Exception as exc:  # pragma: no cover - provider exceptions vary by backend
+                result = _step_result(
+                    step="Synthesize",
+                    status="failed",
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    input_payload={"task_count": task_count},
+                    output_payload={},
+                    errors=[
+                        {
+                            "code": "structured_generation_failed",
+                            "message": str(exc),
+                        }
+                    ],
+                )
+                validate_step_result(result)
+                next_state = _copy_state(state)
+                validate_state(next_state)
+                return next_state, result
+        output_payload = enforce_schema(output_payload, SynthesisOutputModel)
+    else:
+        output_payload = enforce_schema(output_payload, SynthesisOutputModel)
     next_state = _advance_state(
-        state=state, now=finished_at, artifact_key="synthesis", artifact_value=output)
+        state=state, now=finished_at, artifact_key="synthesis", artifact_value=output_payload)
     result = _step_result(
         step="Synthesize",
         status="success",
         started_at=started_at,
         finished_at=finished_at,
         input_payload={"task_count": task_count},
-        output_payload=output,
+        output_payload=output_payload,
     )
     validate_step_result(result)
     validate_state(next_state)

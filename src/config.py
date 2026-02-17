@@ -40,3 +40,11 @@ def get_idempotency_ttl_seconds() -> int | None:
     if value <= 0:
         raise ValueError("IDEMPOTENCY_TTL_SECONDS must be > 0") from None
     return value
+
+
+def get_model_provider() -> str | None:
+    return os.environ.get("MODEL_PROVIDER")
+
+
+def get_model_name() -> str | None:
+    return os.environ.get("MODEL_NAME")
